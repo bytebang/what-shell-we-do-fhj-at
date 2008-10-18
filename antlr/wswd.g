@@ -78,8 +78,11 @@ process     :   BLANK? exe redir*
 		{
 			int i;
 			int fd_out, fd_in;
-			LOG("FORKFORKFORKFORKFORKFORKFORKFORKFORK\n");
-	
+			LOG("FORK\n");
+
+			LOG("Eingabeumleitung aktiv = \%d\n", (szInRedir == NULL)?0:1);
+			LOG("Ausgabeumleitung aktiv = \%d\n", (szOutRedir == NULL)?0:1);
+
 			if((i = fork()) == 0) //child
 			{
 			
@@ -118,11 +121,34 @@ process     :   BLANK? exe redir*
 					szOutRedir = NULL;
 				}
 				
+				// Wir muessen den speicher wieder freigeben
+				while(nArgsUsed >= 0)
+				{
+					free(argv[nArgsUsed]);
+					argv[nArgsUsed] = NULL;
+					nArgsUsed --;
+				}
+				
 				exit(0);
 			}
-	
+			
 			waitpid(i, 0 , 0);			
-	
+			
+			
+			// Speicher auch im Parent freigeben
+			if(szInRedir != NULL)
+			{
+				free(szInRedir);
+				szInRedir = NULL;
+			}
+			
+			// Speicher auch im Parent freigeben
+			if(szOutRedir != NULL)
+			{
+				free(szOutRedir);
+				szOutRedir = NULL;
+			}
+				
 			// Wir muessen den speicher wieder freigeben
 			while(nArgsUsed >= 0)
 			{
@@ -131,7 +157,6 @@ process     :   BLANK? exe redir*
 				nArgsUsed --;
 			}
 			nArgsUsed = 0;
-
 		};
 
 pipeto    :	'|'
