@@ -25,6 +25,10 @@ tokens
 
 @members
 {
+	//---------------------------------------------------------
+	// Variablen und defines fuer Prozesse starten
+	//---------------------------------------------------------
+	
 	//! Defines fuer die Parameterliste
 	#define MAX_ARGS 	100
 
@@ -34,6 +38,11 @@ tokens
 	//! Anzahl der tatsaechlich verwendeten Parameter
 	//! wird verwendet um im exec Array an die richtige stelle zu schreiben
 	int nArgsUsed = 0;
+
+
+	//---------------------------------------------------------
+	// Variablen und defines fuer Redirections
+	//---------------------------------------------------------
 	
 }
 /*------------------------------------------------------------------
@@ -107,13 +116,13 @@ exe 	:	binary (BLANK param)*;
 inredir
         :       INPUT_REDIR BLANK? file 
         	{
-			printf("leite Eingabestrom in '\%s' um\n",(char*)$file.text->chars);
+			LOG("leite Eingabestrom in '\%s' um\n",(char*)$file.text->chars);
         	};
 
 outredir
         :       OUTPUT_REDIR BLANK? file 
         	{
-			printf("leite Ausgabestrom in '\%s' um\n",(char*)$file.text->chars);
+			LOG("leite Ausgabestrom in '\%s' um\n",(char*)$file.text->chars);
         	};
 
 

@@ -1,4 +1,6 @@
 
+#include<sys/wait.h>
+
 /**
   * Zentrale Logfunktion fuer interne Loggings.
   * Diese funktion kann in der Releaseversion unterdrueckt werden.
