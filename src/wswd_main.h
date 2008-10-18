@@ -1,6 +1,9 @@
 
 #include<sys/wait.h>
-
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 /**
   * Zentrale Logfunktion fuer interne Loggings.
   * Diese funktion kann in der Releaseversion unterdrueckt werden.

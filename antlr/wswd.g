@@ -44,6 +44,18 @@ tokens
 	// Variablen und defines fuer Redirections
 	//---------------------------------------------------------
 	
+	// Redirections werden immer kurz vor dem aufruf des exes ausgefuehrt
+	// Nach dem exec werden diese Variablen wieder auf NULL gesetzt
+	
+	//! Inputredirection
+	//! In der Regel inredir wird dieser Pointer mit dem Filenamen
+	//! der Einzulesenden Datei befuellt
+	char *szInRedir = NULL;
+
+	//! Outputredirection
+	//! In der Regel outredir wird dieser Pointer mit dem Filenamen
+	//! der Einzulesenden Datei befuellt
+	char *szOutRedir = NULL;
 }
 /*------------------------------------------------------------------
  * PARSER RULES
@@ -64,15 +76,48 @@ cmd_line
 
 process     :   BLANK? exe redir*
 		{
-			//printf("starte prozess '\%s'\n",$exe.text->chars);
 			int i;
-			
+			int fd_out, fd_in;
+			LOG("FORKFORKFORKFORKFORKFORKFORKFORKFORK\n");
+	
 			if((i = fork()) == 0) //child
 			{
-				//printf("Prozess wird gestartet\n");
-				// Here, the process is changed
+			
+				// Any redirections ?
+				if(szInRedir != NULL)
+				{
+      					LOG("INPUT Redirection wird durchgefuehrt");
+      					fd_in = open(szInRedir, O_RDONLY);
+      					dup2(fd_in, fileno(stdin)); // redirect to stdout
+      					close(fd_in); // Close unused file descriptors
+				}
+								
+				if(szOutRedir != NULL)
+				{
+					LOG("OUTPUT Redirection wird durchgefuehrt");
+					fd_out = open(szOutRedir, O_RDWR|O_CREAT,S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+					dup2(fd_out, fileno(stdout)); // redirect to stdout
+					close(fd_out); // Close unused file descriptors
+				}	
+				
+				// Here, the process is started
 				i = execvp(argv[0], argv);
-				LOG("Creation of process [\%s] returned : \%d",(char*)$exe.text->chars,i);
+				LOG("ERROR : Creation of process [\%s] returned : \%d",(char*)$exe.text->chars,i);
+				
+				// Speicher freigeben
+				if(szInRedir != NULL)
+				{
+					free(szInRedir);
+					szInRedir = NULL;
+				}
+				
+				// Speicher freigeben
+				if(szOutRedir != NULL)
+				{
+					free(szOutRedir);
+					szOutRedir = NULL;
+				}
+				
 				exit(0);
 			}
 	
@@ -82,6 +127,7 @@ process     :   BLANK? exe redir*
 			while(nArgsUsed >= 0)
 			{
 				free(argv[nArgsUsed]);
+				argv[nArgsUsed] = NULL;
 				nArgsUsed --;
 			}
 			nArgsUsed = 0;
@@ -96,15 +142,14 @@ binary 	:	STRING
 		{
         		argv[0] = (char *) malloc(strlen((char*)$binary.text->chars));
         		strcpy(argv[0], (char*) $binary.text->chars);	
-        		LOG("BINARY '\%s' gefunden ... wird an die Stelle 0 geschrieben\n",(char*)$binary.text->chars);
+        		LOG("BINARY '\%s' gefunden ... wird an die Stelle 0 geschrieben\n",argv[0]);
 		};
 param	:	STRING
 		{
         		nArgsUsed ++;
-        		LOG("PARAMETER '\%s' gefunden ... wird an die Stelle \%d geschrieben\n",(char*)$param.text->chars, nArgsUsed);
-
                    	argv[nArgsUsed] = (char *) malloc(strlen((char*)$param.text->chars));
         		strcpy(argv[nArgsUsed], (char*) $param.text->chars);	
+        		LOG("PARAMETER '\%s' gefunden ... wird an die Stelle \%d geschrieben\n",argv[nArgsUsed],nArgsUsed); 
 		};
 file	:	STRING;
 
@@ -116,13 +161,17 @@ exe 	:	binary (BLANK param)*;
 inredir
         :       INPUT_REDIR BLANK? file 
         	{
-			LOG("leite Eingabestrom in '\%s' um\n",(char*)$file.text->chars);
+			szInRedir = (char *) malloc(strlen((char*)$file.text->chars));
+        		strcpy(szInRedir, (char*) $file.text->chars);
+			LOG("EINGABESTROM wird umgeleitet in '\%s' \n",szInRedir);;
         	};
 
 outredir
         :       OUTPUT_REDIR BLANK? file 
         	{
-			LOG("leite Ausgabestrom in '\%s' um\n",(char*)$file.text->chars);
+			szOutRedir = (char *) malloc(strlen((char*)$file.text->chars));
+        		strcpy(szOutRedir, (char*) $file.text->chars);
+			LOG("AUSGABESTROM wird umgeleitet in '\%s' \n",szOutRedir);
         	};
 
 
