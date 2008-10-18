@@ -5,24 +5,9 @@
  *      Author: jars
  */
 
-
- #include "wswdLexer.h"
- #include "wswdParser.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-//-----------------------------------------------------------------------------
-/*
- * *********************** Prototypendeklarationen ***************************
- * normalerweise gehoert das in ein H File, aber nachdem das Projekt so klein
- * ist und es in C nicht verboten ist deklarieren wir unsere Funktionen hier
- */
-//-----------------------------------------------------------------------------
-void what_shell_we_do(char* thats_to_do);
-void print_welcomeBanner(void);
-void print_prompt(void);
+#include "wswd_main.h"
+#include "wswdLexer.h"
+#include "wswdParser.h"
 
 //-----------------------------------------------------------------------------
  /*
@@ -39,12 +24,6 @@ void print_prompt(void);
 	 while(fgets(user_input, sizeof(user_input), stdin))
 	 {
 		 what_shell_we_do(user_input);
-
-		 // wir verabschieden uns wenn der Benutzer exit eingibt
-		 if(strcmp(user_input,"exit") == 0)
-		 {
-			 break;
-		 }
 		 print_prompt();
 	 }
     return 0;
@@ -61,14 +40,13 @@ void print_prompt(void);
 	pANTLR3_COMMON_TOKEN_STREAM tokens;
 	pwswdParser					parser;
 
-	//printf("Anweisung : %s \n", thats_to_do);
-	//return;
+	LOG("Anweisung : %s \n", thats_to_do);
 
 	// wir lesen vom uebergebenen String
 	input  = antlr3NewAsciiStringInPlaceStream((pANTLR3_UINT8)thats_to_do,strlen(thats_to_do),NULL);
 	if(input == NULL)
 	{
-		printf("### Fehler beim Eryeugen des Inputstreams");
+		printf("### Fehler beim Erzeugen des Inputstreams");
 	}
 
 	lex    = wswdLexerNew                		(input);
@@ -125,6 +103,4 @@ void print_prompt(void);
 	 printf("\nwhat-shell-we-do@%s [%s]: ", szHostName, szWorkingDir);
  }
  //-----------------------------------------------------------------------------
-
-
 

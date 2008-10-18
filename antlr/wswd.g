@@ -20,11 +20,7 @@ tokens
 @parser::includes
 {
 	// Include our noddy C++ example class
-	//
-	#include <stdio.h>
-	#include <stdlib.h>
-	#include <sys/stat.h>
-	#include <fcntl.h>
+	#include "wswd_main.h"
 }
 
 @members
@@ -45,7 +41,16 @@ tokens
  *------------------------------------------------------------------*/
 cmd_line       
         :	process (BLANK? pipeto process)* BLANK?
-        |	EXIT;
+        |	NL 
+        	{
+        		LOG("No command given!\n");
+        	}
+        |	EXIT 
+        	{
+        		// Wir verabschieden uns
+        		LOG("Thanks for using the shell, bye!\n");
+        		exit(0);
+        	};
 
 
 process     :   BLANK? exe redir*
@@ -58,7 +63,7 @@ process     :   BLANK? exe redir*
 				//printf("Prozess wird gestartet\n");
 				// Here, the process is changed
 				i = execvp(argv[0], argv);
-				printf("i nach execvp:\%d",i);
+				LOG("Creation of process [\%s] returned : \%d",(char*)$exe.text->chars,i);
 				exit(0);
 			}
 	
@@ -80,18 +85,17 @@ pipeto    :	'|'
         	};
 binary 	:	STRING
 		{
-        		argv[0] = (char *) malloc(strlen($binary.text->chars));
-        		strcpy(argv[0], $binary.text->chars);	
-        		
-        		//printf("BINARY '\%s' gefunden ... wird an die Stelle 0 geschrieben\n",$binary.text->chars);
+        		argv[0] = (char *) malloc(strlen((char*)$binary.text->chars));
+        		strcpy(argv[0], (char*) $binary.text->chars);	
+        		LOG("BINARY '\%s' gefunden ... wird an die Stelle 0 geschrieben\n",(char*)$binary.text->chars);
 		};
 param	:	STRING
 		{
         		nArgsUsed ++;
-        		//printf("PARAMETER '\%s' gefunden ... wird an die Stelle \%d geschrieben\n",$param.text->chars, nArgsUsed);
+        		LOG("PARAMETER '\%s' gefunden ... wird an die Stelle \%d geschrieben\n",(char*)$param.text->chars, nArgsUsed);
 
-                   	argv[nArgsUsed] = (char *) malloc(strlen($param.text->chars));
-        		strcpy(argv[nArgsUsed], $param.text->chars);	
+                   	argv[nArgsUsed] = (char *) malloc(strlen((char*)$param.text->chars));
+        		strcpy(argv[nArgsUsed], (char*) $param.text->chars);	
 		};
 file	:	STRING;
 
@@ -103,13 +107,13 @@ exe 	:	binary (BLANK param)*;
 inredir
         :       INPUT_REDIR BLANK? file 
         	{
-			printf("leite Eingabestrom in '\%s' um\n",$file.text->chars);
+			printf("leite Eingabestrom in '\%s' um\n",(char*)$file.text->chars);
         	};
 
 outredir
         :       OUTPUT_REDIR BLANK? file 
         	{
-			printf("leite Ausgabestrom in '\%s' um\n",$file.text->chars);
+			printf("leite Ausgabestrom in '\%s' um\n",(char*)$file.text->chars);
         	};
 
 
