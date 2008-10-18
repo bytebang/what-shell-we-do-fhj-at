@@ -56,6 +56,36 @@ tokens
 	//! In der Regel outredir wird dieser Pointer mit dem Filenamen
 	//! der Einzulesenden Datei befuellt
 	char *szOutRedir = NULL;
+	
+	
+	/**
+	* Funktion zum bereinigen des Speichers
+	*/
+	void inline cleanup(void)
+	{
+		// Speicher freigeben, falls angebraucht
+		if(szInRedir != NULL)
+		{
+			free(szInRedir);
+			szInRedir = NULL; // Als ungebraucht markieren
+		}
+		
+		// Speicher freigeben, falls angebrauc
+		if(szOutRedir != NULL)
+		{
+			free(szOutRedir);
+			szOutRedir = NULL;// Als ungebraucht markieren
+		}
+		
+		// Wir muessen den speicher wieder freigeben
+		while(nArgsUsed >= 0)
+		{
+			free(argv[nArgsUsed]);
+			argv[nArgsUsed] = NULL;
+			nArgsUsed --;
+		}
+		nArgsUsed = 0;
+	}
 }
 /*------------------------------------------------------------------
  * PARSER RULES
@@ -107,56 +137,16 @@ process     :   BLANK? exe redir*
 				i = execvp(argv[0], argv);
 				LOG("ERROR : Creation of process [\%s] returned : \%d",(char*)$exe.text->chars,i);
 				
-				// Speicher freigeben
-				if(szInRedir != NULL)
-				{
-					free(szInRedir);
-					szInRedir = NULL;
-				}
-				
-				// Speicher freigeben
-				if(szOutRedir != NULL)
-				{
-					free(szOutRedir);
-					szOutRedir = NULL;
-				}
-				
-				// Wir muessen den speicher wieder freigeben
-				while(nArgsUsed >= 0)
-				{
-					free(argv[nArgsUsed]);
-					argv[nArgsUsed] = NULL;
-					nArgsUsed --;
-				}
+				// SPeicher freigeben
+				cleanup();
 				
 				exit(0);
 			}
 			
-			waitpid(i, 0 , 0);			
-			
-			
-			// Speicher auch im Parent freigeben
-			if(szInRedir != NULL)
-			{
-				free(szInRedir);
-				szInRedir = NULL;
-			}
+			waitpid(i, 0 , 0);		
 			
 			// Speicher auch im Parent freigeben
-			if(szOutRedir != NULL)
-			{
-				free(szOutRedir);
-				szOutRedir = NULL;
-			}
-				
-			// Wir muessen den speicher wieder freigeben
-			while(nArgsUsed >= 0)
-			{
-				free(argv[nArgsUsed]);
-				argv[nArgsUsed] = NULL;
-				nArgsUsed --;
-			}
-			nArgsUsed = 0;
+			cleanup();
 		};
 
 pipeto    :	'|'
