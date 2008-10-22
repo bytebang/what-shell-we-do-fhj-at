@@ -1,0 +1,4 @@
+Original Testcase von Encephalon :
+
+program1 parameter1 < dateiname > dateiname | program2 parameter1 parameter3 | program3 > dateiname
+
