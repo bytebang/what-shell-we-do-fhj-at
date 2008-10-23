@@ -3,9 +3,9 @@ grammar wswd;
 
 options
 {
-    language=C;
-    //buildAST=true;
-    //output=AST;
+	output	    	= AST;
+	//language    	= C;
+	//ASTLabelType	= pANTLR3_BASE_TREE;
 }
 
 tokens
@@ -91,7 +91,7 @@ tokens
  * PARSER RULES
  *------------------------------------------------------------------*/
 cmd_line       
-        :	process (BLANK? pipeto process)* BLANK?
+        :	pipeline
         |	NL 
         	{
         		LOG("No command given!\n");
@@ -103,15 +103,23 @@ cmd_line
         		exit(0);
         	};
 
+///////////////
+
+pipeline 
+	: process (pipecreator)* ;
+
+pipecreator
+	: BLANK? pipeto^ process;
+
+
+ 	
+///////////////
 
 process     :   BLANK? exe redir*
 		{
 			int i;
 			int fd_out, fd_in;
-			LOG("FORK\n");
-
-			LOG("Eingabeumleitung aktiv = \%d\n", (szInRedir == NULL)?0:1);
-			LOG("Ausgabeumleitung aktiv = \%d\n", (szOutRedir == NULL)?0:1);
+			LOG("FORK [Eingabeumleitung aktiv = \%d, Ausgabeumleitung aktiv = \%d]\n", (szInRedir == NULL)?0:1, (szOutRedir == NULL)?0:1);
 
 			if((i = fork()) == 0) //child
 			{
@@ -135,7 +143,7 @@ process     :   BLANK? exe redir*
 				
 				// Here, the process is started
 				i = execvp(argv[0], argv);
-				LOG("ERROR : Creation of process [\%s] returned : \%d",(char*)$exe.text->chars,i);
+				LOG("ERROR : Creation of process [\%s] returned : \%d \n",(char*)$exe.text->chars,i);
 				
 				// SPeicher freigeben
 				cleanup();
@@ -149,10 +157,7 @@ process     :   BLANK? exe redir*
 			cleanup();
 		};
 
-pipeto    :	'|'
-		{
-        		printf("da erzeugen wir mal schnell eine PIPE");	
-        	};
+pipeto    :	'|';
 binary 	:	STRING
 		{
         		argv[0] = (char *) malloc(strlen((char*)$binary.text->chars));
@@ -194,5 +199,5 @@ outredir
  * LEXER RULES
  *------------------------------------------------------------------*/
 fragment CHAR  	: ('0'..'9'|'A'..'Z'|'a'..'z'|'/'|'-'|'*'|'.');
-BLANK 		: ( '\t' | ' ')+;
+BLANK	: ( '\t' | ' ')+;
 STRING  	: (CHAR)+;

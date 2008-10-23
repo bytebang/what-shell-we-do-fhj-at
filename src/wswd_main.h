@@ -8,7 +8,7 @@
   * Zentrale Logfunktion fuer interne Loggings.
   * Diese funktion kann in der Releaseversion unterdrueckt werden.
   */
-#define LOG(...)// printf(" >> LOG : " __VA_ARGS__ )
+#define LOG(...) printf(" >> LOG : " __VA_ARGS__ )
 
 //-----------------------------------------------------------------------------
 /*
