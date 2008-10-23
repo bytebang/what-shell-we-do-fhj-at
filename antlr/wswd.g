@@ -3,8 +3,7 @@ grammar wswd;
 
 options
 {
-	output	    	= AST;
-	//language    	= C;
+	language    	= C;
 	//ASTLabelType	= pANTLR3_BASE_TREE;
 }
 
@@ -90,32 +89,19 @@ tokens
 /*------------------------------------------------------------------
  * PARSER RULES
  *------------------------------------------------------------------*/
+ 
 cmd_line       
-        :	pipeline
-        |	NL 
-        	{
-        		LOG("No command given!\n");
-        	}
-        |	EXIT 
-        	{
-        		// Wir verabschieden uns
-        		LOG("Thanks for using the shell, bye!\n");
-        		exit(0);
-        	};
+        :	process (process)* BLANK?
+        |	EXIT;
 
-///////////////
+pipecreator 
+	: (BLANK? pipeto)
+	{
+		LOG("Dieser Prozess braucht eine Pipe\n");
+	};
+		
+process     :   BLANK? exe redir* pipecreator?
 
-pipeline 
-	: process (pipecreator)* ;
-
-pipecreator
-	: BLANK? pipeto^ process;
-
-
- 	
-///////////////
-
-process     :   BLANK? exe redir*
 		{
 			int i;
 			int fd_out, fd_in;
