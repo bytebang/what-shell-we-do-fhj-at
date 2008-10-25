@@ -1,6 +1,5 @@
 grammar wswd;
 
-
 options
 {
 	language    	= C;
@@ -22,70 +21,6 @@ tokens
 	#include "wswd_main.h"
 }
 
-@members
-{
-	//---------------------------------------------------------
-	// Variablen und defines fuer Prozesse starten
-	//---------------------------------------------------------
-	
-	//! Defines fuer die Parameterliste
-	#define MAX_ARGS 	100
-
-	//! Parameterarray fuer execvp
-	char *argv[MAX_ARGS];
-
-	//! Anzahl der tatsaechlich verwendeten Parameter
-	//! wird verwendet um im exec Array an die richtige stelle zu schreiben
-	int nArgsUsed = 0;
-
-
-	//---------------------------------------------------------
-	// Variablen und defines fuer Redirections
-	//---------------------------------------------------------
-	
-	// Redirections werden immer kurz vor dem aufruf des exes ausgefuehrt
-	// Nach dem exec werden diese Variablen wieder auf NULL gesetzt
-	
-	//! Inputredirection
-	//! In der Regel inredir wird dieser Pointer mit dem Filenamen
-	//! der Einzulesenden Datei befuellt
-	char *szInRedir = NULL;
-
-	//! Outputredirection
-	//! In der Regel outredir wird dieser Pointer mit dem Filenamen
-	//! der Einzulesenden Datei befuellt
-	char *szOutRedir = NULL;
-	
-	
-	/**
-	* Funktion zum bereinigen des Speichers
-	*/
-	void inline cleanup(void)
-	{
-		// Speicher freigeben, falls angebraucht
-		if(szInRedir != NULL)
-		{
-			free(szInRedir);
-			szInRedir = NULL; // Als ungebraucht markieren
-		}
-		
-		// Speicher freigeben, falls angebrauc
-		if(szOutRedir != NULL)
-		{
-			free(szOutRedir);
-			szOutRedir = NULL;// Als ungebraucht markieren
-		}
-		
-		// Wir muessen den speicher wieder freigeben
-		while(nArgsUsed >= 0)
-		{
-			free(argv[nArgsUsed]);
-			argv[nArgsUsed] = NULL;
-			nArgsUsed --;
-		}
-		nArgsUsed = 0;
-	}
-}
 /*------------------------------------------------------------------
  * PARSER RULES
  *------------------------------------------------------------------*/
@@ -103,6 +38,7 @@ pipecreator
 process     :   BLANK? exe redir* pipecreator?
 
 		{
+			/*
 			int i;
 			int fd_out, fd_in;
 			LOG("FORK [Eingabeumleitung aktiv = \%d, Ausgabeumleitung aktiv = \%d]\n", (szInRedir == NULL)?0:1, (szOutRedir == NULL)?0:1);
@@ -140,22 +76,26 @@ process     :   BLANK? exe redir* pipecreator?
 			waitpid(i, 0 , 0);		
 			
 			// Speicher auch im Parent freigeben
-			cleanup();
+			cleanup();*/
 		};
 
 pipeto    :	'|';
 binary 	:	STRING
 		{
+        		/* 
         		argv[0] = (char *) malloc(strlen((char*)$binary.text->chars));
         		strcpy(argv[0], (char*) $binary.text->chars);	
         		LOG("BINARY '\%s' gefunden ... wird an die Stelle 0 geschrieben\n",argv[0]);
+        		*/
 		};
 param	:	STRING
 		{
+        		/*
         		nArgsUsed ++;
                    	argv[nArgsUsed] = (char *) malloc(strlen((char*)$param.text->chars));
         		strcpy(argv[nArgsUsed], (char*) $param.text->chars);	
         		LOG("PARAMETER '\%s' gefunden ... wird an die Stelle \%d geschrieben\n",argv[nArgsUsed],nArgsUsed); 
+        		*/
 		};
 file	:	STRING;
 
@@ -167,17 +107,21 @@ exe 	:	binary (BLANK param)*;
 inredir
         :       INPUT_REDIR BLANK? file 
         	{
+			/*
 			szInRedir = (char *) malloc(strlen((char*)$file.text->chars));
         		strcpy(szInRedir, (char*) $file.text->chars);
 			LOG("EINGABESTROM wird umgeleitet in '\%s' \n",szInRedir);;
+			*/
         	};
 
 outredir
         :       OUTPUT_REDIR BLANK? file 
         	{
+			/*
 			szOutRedir = (char *) malloc(strlen((char*)$file.text->chars));
         		strcpy(szOutRedir, (char*) $file.text->chars);
 			LOG("AUSGABESTROM wird umgeleitet in '\%s' \n",szOutRedir);
+			*/
         	};
 
 
