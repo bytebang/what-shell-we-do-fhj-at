@@ -56,7 +56,7 @@ int processes_used;
 void what_shell_we_do(char* thats_to_do);
 void print_welcomeBanner(void);
 void print_prompt(void);
-void cleanup(wswd_proz ps);
+void cleanup_struct(void);
 void process_struct(void);
 
 #endif //WSWD_MAIN_H

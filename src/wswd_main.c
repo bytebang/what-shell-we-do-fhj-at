@@ -58,6 +58,7 @@ void what_shell_we_do(char* thats_to_do)
 	parser -> cmd_line(parser); // Befuellen der internen strukturen
 
 	process_struct();
+	cleanup_struct();
 	/*
 pANTLR3_COMMON_TOKEN	    t;
 do
@@ -110,33 +111,42 @@ void print_prompt(void)
 /**
  * Funktion zum bereinigen des Speichers
  */
-void inline cleanup(wswd_proz ps)
+void cleanup_struct(void)
 {
-	// Speicher freigeben, falls angebraucht
-	if(ps.szInRedir != NULL)
-	{
-		free(ps.szInRedir);
-	}
-	ps.szInRedir = NULL; // Als ungebraucht markieren
+	int i;
 
-	// Speicher freigeben, falls angebrauc
-	if(ps.szOutRedir != NULL)
+    while(processes_used > 0)
 	{
-		free(ps.szOutRedir);
-	}
-	ps.szOutRedir = NULL;// Als ungebraucht markieren
+    	wswd_proz *ps = processes[processes_used-1];
+    	// Speicher freigeben, falls angebraucht
+		if(ps->szInRedir != NULL)
+		{
+			free(ps->szInRedir);
+		}
+		ps->szInRedir = NULL; // Als ungebraucht markieren
 
-	// Wir muessen den speicher wieder freigeben
-	while(ps.nArgsUsed >= 0)
-	{
-		free(ps.argv[ps.nArgsUsed]);
-		ps.argv[ps.nArgsUsed] = NULL;
-		ps.nArgsUsed --;
-	}
-	ps.nArgsUsed = 0;
+		// Speicher freigeben, falls angebrauc
+		if(ps->szOutRedir != NULL)
+		{
+			free(ps->szOutRedir);
+		}
+		ps->szOutRedir = NULL;// Als ungebraucht markieren
 
-	// Wir loeschen das pipe flag
-	ps.nUsePipe = 0;
+		// Wir muessen den speicher wieder freigeben
+		while(ps->nArgsUsed > 0)
+		{
+			free(ps->argv[ps->nArgsUsed-1]);
+			ps->argv[ps->nArgsUsed-1] = NULL;
+			ps->nArgsUsed --;
+		}
+		ps->nArgsUsed = 0;
+
+		// Wir loeschen das pipe flag
+		ps->nUsePipe = 0;
+
+		processes_used --;
+		ps = NULL;
+	}
 }
 //-----------------------------------------------------------------------------
 /**
@@ -145,7 +155,125 @@ void inline cleanup(wswd_proz ps)
  */
 void process_struct(void)
 {
-	// juvis work goes in here
-}
-//-----------------------------------------------------------------------------
+	return;
+	int pipe_connection[2];
+	int pipes_initialized;
 
+	pipes_initialized  = 0;
+        // juvis work goes in here
+        int i, pid;
+        for (i = 0; i < processes_used; i++)
+        {
+                if (processes[i] != NULL)
+                {
+                        wswd_proz* w;
+                        w= processes[i];
+                        if (w->nUsePipe &&
+                                        !pipes_initialized)
+                        {
+                                LOG("pipe(pipe_connection);");
+                                pipe(pipe_connection);
+                                pipes_initialized = 1;
+                        }
+                        int j;
+                        if ((j = fork()) == 0)
+                        {
+                                pid = j;
+                                if (w->nUsePipe == 1)
+                                {
+                                        if (i == 0)
+                                        {
+                                                LOG("Pipe from");
+                                                dup2(pipe_connection[1],1);
+                                        close(pipe_connection[0]);
+                                        }
+
+                                }
+
+                                if (processes[i-1] != NULL)
+                                {
+                                        if (processes[i-1]->nUsePipe)
+                                        {
+                                                if (!w->nUsePipe)
+                                                {
+                                                        LOG("Pipe to");
+                                                        dup2(pipe_connection[0],0);
+                                                        close(pipe_connection[1]);
+                                                }
+                                                else
+                                                {
+                                                        LOG("Double Pipe");
+                                                        dup2(pipe_connection[0],0);
+                                                        dup2(pipe_connection[1],1);
+                                                }
+                                        }
+                                }
+
+                                j = execvp(w->argv[0], w->argv);
+                                exit(0);
+
+                        }
+                }
+        }
+        waitpid(pid,0,0);
+}
+
+//-----------------------------------------------------------------------------
+void init_test_struct(void)
+{
+
+        processes[0] = malloc(sizeof(wswd_proz));
+        processes[1] = malloc(sizeof(wswd_proz));
+
+        wswd_proz* w1 = processes[0];
+
+
+        char argv0_0[] = "ls";
+        char argv0_1[] = "-l";
+
+        w1->argv[0] = malloc(strlen(argv0_0));
+        strcpy(w1->argv[0], argv0_0);
+        w1->nArgsUsed = 1;
+
+        w1->argv[1] = malloc(strlen(argv0_1));
+        strcpy(w1->argv[1], argv0_1);
+        w1->nArgsUsed = 2;
+
+        w1->nUsePipe = 1;
+
+        char argv1_0[] = "grep";
+        char argv1_1[] = "2008";
+
+        wswd_proz* w2 = processes[1];
+
+        w2->argv[0] = malloc(strlen(argv1_0));
+        strcpy(w2->argv[0], argv1_0);
+        w2->nArgsUsed = 1;
+
+        w2->argv[1] = malloc(strlen(argv1_1));
+        strcpy(w2->argv[1], argv1_1);
+        w2->nArgsUsed = 2;
+        w2->nUsePipe = 0;
+        processes_used = 2;
+/*
+        processes[2] = malloc(sizeof(wswd_proz));
+        w2->nUsePipe = 1;
+        char argv2_0[] = "sort";
+        char argv2_1[] = "-r";
+
+        wswd_proz* w3 = processes[2];
+
+        w3->argv[0] = malloc(strlen(argv2_0));
+        strcpy(w3->argv[0], argv2_0);
+        w3->nArgsUsed = 1;
+
+        w3->argv[1] = malloc(strlen(argv2_1));
+        strcpy(w3->argv[1], argv2_1);
+        w3->nArgsUsed = 2;
+        w3->nUsePipe = 0;
+        processes_used = 3;
+*/
+
+
+
+}
