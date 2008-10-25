@@ -53,7 +53,11 @@ void what_shell_we_do(char* thats_to_do)
 	tokens = antlr3CommonTokenStreamSourceNew  	(ANTLR3_SIZE_HINT, TOKENSOURCE(lex));
 	parser = wswdParserNew               		(tokens);
 
-	parser -> cmd_line(parser);
+	processes_used = 0;
+
+	parser -> cmd_line(parser); // Befuellen der internen strukturen
+
+	process_struct();
 	/*
 pANTLR3_COMMON_TOKEN	    t;
 do
@@ -130,5 +134,18 @@ void inline cleanup(wswd_proz ps)
 		ps.nArgsUsed --;
 	}
 	ps.nArgsUsed = 0;
+
+	// Wir loeschen das pipe flag
+	ps.nUsePipe = 0;
 }
 //-----------------------------------------------------------------------------
+/**
+ * Arbeitet das Strukturarray ab, startet die Prozesse, legt redirections an und
+ * erzeugt pipes (sofern notwendig)
+ */
+void process_struct(void)
+{
+	// juvis work goes in here
+}
+//-----------------------------------------------------------------------------
+

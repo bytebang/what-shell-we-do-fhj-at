@@ -14,8 +14,8 @@
 
 
 //! Defines fuer die Parameterliste
-#define MAX_ARGS 	100
-
+#define MAX_ARGS 		100
+#define MAX_PROCESSES 	100
 
 typedef struct _wswd_proz
 {
@@ -36,7 +36,13 @@ typedef struct _wswd_proz
 	//! der Einzulesenden Datei befuellt
 	char *szOutRedir;
 
+	//! Pipes verwendet
+	int nUsePipe;
+
 }wswd_proz;
+
+wswd_proz* processes[MAX_PROCESSES];
+int processes_used;
 
 //-----------------------------------------------------------------------------
 /*
@@ -51,5 +57,6 @@ void what_shell_we_do(char* thats_to_do);
 void print_welcomeBanner(void);
 void print_prompt(void);
 void cleanup(wswd_proz ps);
+void process_struct(void);
 
 #endif //WSWD_MAIN_H
