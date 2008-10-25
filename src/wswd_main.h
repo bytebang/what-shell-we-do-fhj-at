@@ -10,7 +10,7 @@
   * Zentrale Logfunktion fuer interne Loggings.
   * Diese funktion kann in der Releaseversion unterdrueckt werden.
   */
-#define LOG(...) printf(" >> LOG : " __VA_ARGS__ )
+#define LOG(...) printf(" >> LOG : " __VA_ARGS__ ); printf("\n");
 
 
 //! Defines fuer die Parameterliste
@@ -58,5 +58,8 @@ void print_welcomeBanner(void);
 void print_prompt(void);
 void cleanup_struct(void);
 void process_struct(void);
+void print_struct(wswd_proz* p);
+void init_struct(wswd_proz* p);
+void print_processes(void);
 
 #endif //WSWD_MAIN_H

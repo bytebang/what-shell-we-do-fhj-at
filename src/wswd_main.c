@@ -54,30 +54,19 @@ void what_shell_we_do(char* thats_to_do)
 	parser = wswdParserNew               		(tokens);
 
 	processes_used = 0;
-
 	parser -> cmd_line(parser); // Befuellen der internen strukturen
 
-	process_struct();
-	cleanup_struct();
-	/*
-pANTLR3_COMMON_TOKEN	    t;
-do
-{
-t = TOKENSOURCE(lex)->nextToken(TOKENSOURCE(lex));
-pANTLR3_STRING s = t->getText(t);
-if (t != NULL)
-{
-printf("[%s] ", s->chars);
-fflush(stdout);
-}
-}
-while (t == NULL || t->getType(t) != ANTLR3_TOKEN_EOF);
-	 */
+	print_processes();
+
 	// Must manually clean up
 	parser ->free(parser);
 	tokens ->free(tokens);
 	lex    ->free(lex);
 	input  ->close(input);
+
+
+	process_struct();
+	cleanup_struct();
 
 }
 //-----------------------------------------------------------------------------
@@ -144,8 +133,8 @@ void cleanup_struct(void)
 		// Wir loeschen das pipe flag
 		ps->nUsePipe = 0;
 
+		processes[processes_used-1] = NULL;
 		processes_used --;
-		ps = NULL;
 	}
 }
 //-----------------------------------------------------------------------------
@@ -155,7 +144,6 @@ void cleanup_struct(void)
  */
 void process_struct(void)
 {
-	return;
 	int pipe_connection[2];
 	int pipes_initialized;
 
@@ -273,7 +261,80 @@ void init_test_struct(void)
         w3->nUsePipe = 0;
         processes_used = 3;
 */
+}
+//-----------------------------------------------------------------------------
+/**
+ * Leert die uebergebene Struktur
+ */
+void init_struct(wswd_proz* p)
+{
+	p->nArgsUsed = 0;
+	p->nUsePipe = 0;
+	p->szInRedir = NULL;
+	p->szOutRedir = NULL;
 
+	int i = 0;
+	for(i = 0; i < MAX_ARGS; i++)
+	{
+		p->argv[i] = NULL;
+	}
+}
+//-----------------------------------------------------------------------------
+/**
+ * Gibt den Inhalt der uebergebenen Struktur aus
+ */
+void print_struct(wswd_proz* p)
+{
+	printf("\n---INHALT von wswd_proz---\n");
 
+	printf(" p->nUsePipe = %d\n",p->nUsePipe);
+
+	if(p->szInRedir == NULL)
+	{
+		printf(" p->szInRedir = NULL\n");
+	}
+	else
+	{
+		printf(" p->szInRedir = %s\n",p->szInRedir);
+	}
+
+	if(p->szOutRedir == NULL)
+	{
+		printf(" p->szOutRedir = NULL\n");
+	}
+	else
+	{
+		printf(" p->szOutRedir = %s\n",p->szOutRedir);
+	}
+
+	printf(" p->nArgsUsed = %d\n",p->nArgsUsed);
+	if(p->nArgsUsed > 0)
+	{
+		int i = 0;
+		for(i = 0; i < p->nArgsUsed; i++)
+		{
+			printf(" p->argv[%d] = %s\n",i,p->argv[i]);
+		}
+	}
+	printf("--------------------\n");
 
 }
+//-----------------------------------------------------------------------------
+/**
+ * Gibt alle Prozesse aus
+ */
+void print_processes(void)
+{
+	int i=0;
+	printf("\n###Anzahl Prozesse : %d###\n",processes_used);
+	for (i = 0; i < processes_used; i++)
+	{
+		printf("processes[%d]\n",i);
+		if (processes[i] != NULL)
+			{
+				print_struct(processes[i]);
+			}
+	}
+
+}
+//-----------------------------------------------------------------------------

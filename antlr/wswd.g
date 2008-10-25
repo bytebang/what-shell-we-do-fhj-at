@@ -46,6 +46,8 @@ pipecreator
 process     :   BLANK? exe redir* pipecreator?
 		{
 			LOG("Ende des Prozesses\n");
+			print_struct(w_akt);
+			w_akt = NULL;
 		};
 
 pipeto    :	'|';
@@ -55,19 +57,21 @@ binary 	:	STRING
 			processes_used ++;
 			processes[processes_used -1] = malloc(sizeof(wswd_proz));
 			w_akt = processes[processes_used -1];
+			init_struct(w_akt);
 			
         		// Das binary kann bereits ausgefuellt werden
-        		w_akt->argv[0] = (char *) malloc(strlen((char*)$binary.text->chars));
-        		strcpy(w_akt->argv[0], (char*) $binary.text->chars);	
-        		LOG("BINARY '\%s' gefunden ... wird an die Stelle 0 geschrieben\n",w_akt->argv[0]);
-        		
+        		w_akt->argv[w_akt->nArgsUsed] = (char *) malloc(strlen((char*)$binary.text->chars));
+        		strcpy(w_akt->argv[w_akt->nArgsUsed], (char*) $binary.text->chars);	
+       		
+        		LOG("BINARY '\%s' gefunden ... wird an die Stelle 0 geschrieben\n",w_akt->argv[w_akt->nArgsUsed]);
+        		w_akt->nArgsUsed ++;        		
 		};
 param	:	STRING
 		{
-        		w_akt->nArgsUsed ++;
                    	w_akt->argv[w_akt->nArgsUsed] = (char *) malloc(strlen((char*)$param.text->chars));
         		strcpy(w_akt->argv[w_akt->nArgsUsed], (char*) $param.text->chars);	
         		LOG("PARAMETER '\%s' gefunden ... wird an die Stelle \%d geschrieben\n",w_akt->argv[w_akt->nArgsUsed],w_akt->nArgsUsed); 
+        		w_akt->nArgsUsed ++;
 		};
 file	:	STRING;
 
