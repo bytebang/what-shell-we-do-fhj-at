@@ -106,29 +106,29 @@ void print_prompt(void)
 /**
  * Funktion zum bereinigen des Speichers
  */
-void inline cleanup(wswd_proz* ps)
-{/*
+void inline cleanup(wswd_proz ps)
+{
 	// Speicher freigeben, falls angebraucht
-	if(szInRedir != NULL)
+	if(ps.szInRedir != NULL)
 	{
-		free(szInRedir);
-		szInRedir = NULL; // Als ungebraucht markieren
+		free(ps.szInRedir);
 	}
+	ps.szInRedir = NULL; // Als ungebraucht markieren
 
 	// Speicher freigeben, falls angebrauc
-	if(szOutRedir != NULL)
+	if(ps.szOutRedir != NULL)
 	{
-		free(szOutRedir);
-		szOutRedir = NULL;// Als ungebraucht markieren
+		free(ps.szOutRedir);
 	}
+	ps.szOutRedir = NULL;// Als ungebraucht markieren
 
 	// Wir muessen den speicher wieder freigeben
-	while(nArgsUsed >= 0)
+	while(ps.nArgsUsed >= 0)
 	{
-		free(argv[nArgsUsed]);
-		argv[nArgsUsed] = NULL;
-		nArgsUsed --;
+		free(ps.argv[ps.nArgsUsed]);
+		ps.argv[ps.nArgsUsed] = NULL;
+		ps.nArgsUsed --;
 	}
-	nArgsUsed = 0;*/
+	ps.nArgsUsed = 0;
 }
 //-----------------------------------------------------------------------------

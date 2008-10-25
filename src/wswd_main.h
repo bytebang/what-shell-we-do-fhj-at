@@ -50,6 +50,6 @@ typedef struct _wswd_proz
 void what_shell_we_do(char* thats_to_do);
 void print_welcomeBanner(void);
 void print_prompt(void);
-void inline cleanup(wswd_proz* ps);
+void cleanup(wswd_proz ps);
 
 #endif //WSWD_MAIN_H
