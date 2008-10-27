@@ -148,62 +148,92 @@ void process_struct(void)
 	int pipes_initialized;
 
 	pipes_initialized  = 0;
-        // juvis work goes in here
-        int i, pid;
-        for (i = 0; i < processes_used; i++)
-        {
-                if (processes[i] != NULL)
-                {
-                        wswd_proz* w;
-                        w= processes[i];
-                        if (w->nUsePipe &&
-                                        !pipes_initialized)
-                        {
-                                LOG("pipe(pipe_connection);");
-                                pipe(pipe_connection);
-                                pipes_initialized = 1;
-                        }
-                        int j;
-                        if ((j = fork()) == 0)
-                        {
-                                pid = j;
-                                if (w->nUsePipe == 1)
-                                {
-                                        if (i == 0)
-                                        {
-                                                LOG("Pipe from");
-                                                dup2(pipe_connection[1],1);
-                                        close(pipe_connection[0]);
-                                        }
+	// juvis work goes in here
 
-                                }
+	/* Empfehlung der Vorgehensweile lt. Kvas :
+	Erzeuge einen oder mehrere Kindprozess(e)
+	Richte für diese(n) Kindprozess(e) das Environment ein
 
-                                if (processes[i-1] != NULL)
-                                {
-                                        if (processes[i-1]->nUsePipe)
-                                        {
-                                                if (!w->nUsePipe)
-                                                {
-                                                        LOG("Pipe to");
-                                                        dup2(pipe_connection[0],0);
-                                                        close(pipe_connection[1]);
-                                                }
-                                                else
-                                                {
-                                                        LOG("Double Pipe");
-                                                        dup2(pipe_connection[0],0);
-                                                        dup2(pipe_connection[1],1);
-                                                }
-                                        }
-                                }
+	    * Redirection einrichten
+	    * Pipes einrichten
+	    * Background
 
-                                j = execvp(w->argv[0], w->argv);
-                                exit(0);
+	Starte das Kommando
+	Warten im Parent auf das beenden das Prozesses
+	*/
 
-                        }
-                }
-        }
-        waitpid(pid,0,0);
+	// Die Kommandozeile ist bereits in einen AST zerlegt und
+	// der kann nun abgearbeitet werden.
+
+	int pidx;
+	wswd_proz* w;
+
+	// Fuer jeden Prozess
+	for (pidx = 0; pidx < processes_used; pidx++)
+	{
+		// Prozessstrukturpointer umhaengen
+		w= processes[pidx];
+
+		// Ungueltig -> Fehlermeldung
+		if (w == NULL)
+		{
+			LOG("Ups, Der Prozess %d NULL der das besser nicht waere !\n", pidx);
+			break;
+		}
+
+		// Offensischtlich haben wir einen gueltigen Prozess
+		// den sehen wir uns naeher an
+		if (w->nUsePipe &&
+						!pipes_initialized)
+		{
+				LOG("pipe(pipe_connection);");
+				pipe(pipe_connection);
+				pipes_initialized = 1;
+		}
+
+
+		int childPid;
+		if ((childPid = fork()) == 0)
+		{
+			int fd_out, fd_in; //!< Filedeskriptoren fuer in und outredir
+
+			// Redirections einrichten
+			// Eingaberedirection
+			if(w->szInRedir != NULL)
+			{
+  					LOG("INPUT Redirection wird durchgefuehrt");
+  					fd_in = open(w->szInRedir, O_RDONLY);
+  					dup2(fd_in, fileno(stdin)); // redirect to stdout
+  					close(fd_in); // Close unused file descriptors
+			}
+			// Ausgaberedirection
+			if(w->szOutRedir != NULL)
+			{
+				LOG("OUTPUT Redirection wird durchgefuehrt");
+				fd_out = open(w->szOutRedir, O_RDWR|O_CREAT,S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+				dup2(fd_out, fileno(stdout)); // redirect to stdout
+				close(fd_out); // Close unused file descriptors
+			}
+
+			// Pipes einrichten
+
+			//Prozess starten
+			int exec_retval;
+			exec_retval = execvp(w->argv[0], w->argv);
+			// Alles gutgegangen ?
+			if(exec_retval != 0)
+			{
+				// Nein -> Fehler
+				LOG("Command %s returned with Errorcode %d\n", w->argv[0], exec_retval);
+			}
+
+			// Wir beenden den Kindprozess wieder, damit es weitergehen kann.
+			exit(0);
+		}
+
+		// Wir warten auf den Kindprozess
+		waitpid(childPid,0,0);
+	}
 }
 
 //-----------------------------------------------------------------------------
