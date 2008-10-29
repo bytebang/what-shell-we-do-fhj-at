@@ -39,11 +39,18 @@ typedef struct _wswd_proz
 	//! Pipes verwendet
 	int nUsePipe;
 
+	//! Die Pipeverbindung zum naechsten Prozess
+	//! pipe_verbindung[0] zum Lesen und pipe_verbindung[1] zum Schreiben
+	int pipe_verbindung[2];
+
 }wswd_proz;
 
 wswd_proz* processes[MAX_PROCESSES];
 int processes_used;
 
+// Defines fuer PIPE_Richtungen
+#define PREAD 0
+#define PWRITE 1
 //-----------------------------------------------------------------------------
 /*
  * *********************** Prototypendeklarationen ***************************

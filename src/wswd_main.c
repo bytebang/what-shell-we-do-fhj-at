@@ -16,6 +16,129 @@
 //-----------------------------------------------------------------------------
 int main(int argc, char * argv[])
 {
+	// pipe[0] zum Lesen und pipe[1] zum Schreiben
+	int pipe_verbindung_A[2];
+	int pipe_verbindung_B[2];
+	int pipe_verbindung_C[2];
+	int pipe_verbindung_D[2];
+
+	//Initialisierung durch die Funktion Pipe
+	//pipe(pipe_verbindung_A);
+
+	int cid1;
+	int cid2;
+	int cid3;
+	int cid4;
+	int cid5;
+
+	// Noch haben wir einen Prozess
+	// Wir setzen die erste Pipe auf
+	pipe(pipe_verbindung_A); // zwischen 1 und 2
+	pipe(pipe_verbindung_B); // zwischen 2 und 3
+	pipe(pipe_verbindung_C); // zwischen 3 und 4
+	pipe(pipe_verbindung_D); // zwischen 4 und 5
+
+	// Prozesse erzeugen
+	if((cid1 = fork())!=0)
+	{
+		if((cid2 = fork())!=0)
+		{
+			if((cid3 = fork())!=0)
+			{
+				if((cid4 = fork())!=0)
+				{
+					cid5 = fork();
+				}
+			}
+		}
+	}
+
+	if(cid1== 0)
+	{
+		// im Kindprozess
+		LOG("Das ist der erste Prozess");
+		// dup2 verbindet den Filedeskriptor der Pipe mit der Filedeskriptor der Standardausgabe
+		dup2(pipe_verbindung_A[PWRITE],STDOUT_FILENO);
+
+		// der Leseausgang muss geschlossen werden, da dieser Prozess nichts liest
+		close(pipe_verbindung_A[PREAD]);
+
+		 // Kommando ausführen, Standardausgabe des Kommandos ist mit der Pipe verbunden
+		execlp("ls","ls",0);
+	}
+	if(cid2 == 0)
+	{
+		// im Kindprozess
+		LOG("Das ist der zweite Prozess");
+		// Eingabe von A
+		dup2(pipe_verbindung_A[PREAD],STDIN_FILENO); // Alles aus der Pipe geht in die stdin
+		close(pipe_verbindung_A[PWRITE]);
+
+		// Ausgabe in den B
+		dup2(pipe_verbindung_B[PWRITE],STDOUT_FILENO);
+		close(pipe_verbindung_B[PREAD]);
+
+		execlp("sort","sort","-r",0);
+	}
+	if(cid3 == 0)
+	{
+		// im Kindprozess
+
+		LOG("Das ist der dritte Prozess");
+
+		// Keine Eingabe von A
+		close(pipe_verbindung_A[PWRITE]);
+
+		// EIngabe von B
+		dup2(pipe_verbindung_B[PREAD],STDIN_FILENO); // Alles aus der Pipe geht in die stdin
+		close(pipe_verbindung_B[PWRITE]);
+
+		// AUsgabe in C
+		dup2(pipe_verbindung_C[PWRITE],STDOUT_FILENO);
+		close(pipe_verbindung_C[PREAD]);
+
+		execlp("wc","wc",0);
+	}
+	if(cid4 == 0)
+	{
+		// im Kindprozess
+
+		// Keine Eingabe von A,B
+		close(pipe_verbindung_A[PWRITE]);
+		close(pipe_verbindung_B[PWRITE]);
+
+		LOG("Das ist der vierte Prozess");
+		// EIngabe von C
+		dup2(pipe_verbindung_C[PREAD],STDIN_FILENO); // Alles aus der Pipe geht in die stdin
+		close(pipe_verbindung_C[PWRITE]);
+
+		// AUsgabe in C
+		dup2(pipe_verbindung_D[PWRITE],STDOUT_FILENO);
+		close(pipe_verbindung_D[PREAD]);
+
+		execlp("wc","wc",0);
+	}
+	if(cid5 == 0)
+	{
+		// im Kindprozess
+
+		// Keine Eingabe von A,B,C
+		close(pipe_verbindung_A[PWRITE]);
+		close(pipe_verbindung_B[PWRITE]);
+		close(pipe_verbindung_C[PWRITE]);
+
+		LOG("Das ist der fuenfte Prozess");
+		// Eingabe von D
+		dup2(pipe_verbindung_D[PREAD],STDIN_FILENO);
+
+		// Keine weitere Ausgabeumleitung
+		close(pipe_verbindung_D[PWRITE]);
+
+		execlp("wc","wc","-c",0);
+	}
+
+	exit(0);
+	//----------------------------
 	char user_input[1024];
 
 	print_welcomeBanner();
@@ -144,10 +267,10 @@ void cleanup_struct(void)
  */
 void process_struct(void)
 {
-	int pipe_connection[2];
-	int pipes_initialized;
+	//int pipe_connection[2];
+	//int pipes_initialized;
 
-	pipes_initialized  = 0;
+	//pipes_initialized  = 0;
 	// juvis work goes in here
 
 	/* Empfehlung der Vorgehensweile lt. Kvas :
@@ -183,14 +306,6 @@ void process_struct(void)
 
 		// Offensischtlich haben wir einen gueltigen Prozess
 		// den sehen wir uns naeher an
-		if (w->nUsePipe &&
-						!pipes_initialized)
-		{
-				LOG("pipe(pipe_connection);");
-				pipe(pipe_connection);
-				pipes_initialized = 1;
-		}
-
 
 		int childPid;
 		if ((childPid = fork()) == 0)
@@ -216,6 +331,36 @@ void process_struct(void)
 			}
 
 			// Pipes einrichten
+			// pipe[0] zum Lesen und pipe[1] zum Schreiben
+			int pipe_verbindung[2];
+
+			// Sollen wir selbst eine pipe erzeugen ?
+			if(w->nUsePipe == 1)
+			{
+				//Initialisierung durch die Funktion Pipe
+				pipe(pipe_verbindung);
+				LOG("Pipe wurde initialisiert");
+
+				// dup2 verbindet den Filedeskriptor der Pipe mit der Filedeskriptor der Standardausgabe
+				dup2(pipe_verbindung[1],1);
+
+				// der Leseausgang muss geschlossen werden, da dieser Prozess nichts liest
+				close(pipe_verbindung[0]);
+			}
+
+			// gibt es einen Vorgaengeprozess
+			if(pidx > 0)
+			{
+				// Ja es vor uns gibt es noch eine Prozessstruktur
+				// Hat der fuer uns eine Pipe erzeugt ?
+				if(processes[pidx-1]->nUsePipe = 1)
+				{
+					// Ja hat er, also lesen wir von genau dieser Pipe
+					dup2(pipe_verbindung[0],0);
+					close(pipe_verbindung[1]);
+				}
+
+			}
 
 			//Prozess starten
 			int exec_retval;
@@ -315,7 +460,7 @@ void init_struct(wswd_proz* p)
  */
 void print_struct(wswd_proz* p)
 {
-	printf("\n---INHALT von wswd_proz---\n");
+	printf("\n---INHALT von wswd_proz: [%p] ---\n", &p);
 
 	printf(" p->nUsePipe = %d\n",p->nUsePipe);
 
