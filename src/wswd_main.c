@@ -215,8 +215,8 @@ void process_struct(void)
 
 		if(w->nPID == 0)
 		{
-			printf("PID = %d\n",getpid());
-			printf("pidx = %d\n", pidx);
+			LOG("PID = %d\n",getpid());
+			LOG("pidx = %d\n", pidx);
 		}
 	}
 
@@ -231,8 +231,8 @@ void process_struct(void)
 
 		if(w->nPID == 0)
 		{
-			printf("PID = %d\n",getpid());
-			printf("pidx = %d\n", pidx);
+			LOG("PID = %d\n",getpid());
+			LOG("pidx = %d\n", pidx);
 			// Wenn wir der erste sind und eine Pipe verwenden
 			if(pidx == 0 && w->nUsePipe == 1)
 			{	// im Kindprozess
@@ -342,26 +342,38 @@ void process_struct(void)
 	}
 }
 
-void run_pipe(char **path, int read_fd, int write_fd){
+void redirect(wswd_proz* w)
+{
+	int fd_out, fd_in; //!< Filedeskriptoren fuer in und outredir
 
-	int pid = fork();
-
-    if (pid){		//parent
-		if (read_fd)	close(read_fd);
-        if (write_fd)	close(write_fd);
-        return;
-    }
-
-    if (read_fd)		dup2(read_fd , 0);
-    if (write_fd)		dup2(write_fd, 1);
-
-    execvp(*path, path);
+	// Redirections einrichten
+	// Eingaberedirection
+	if(w->szInRedir != NULL)
+	{
+			LOG("INPUT Redirection wird durchgefuehrt");
+			fd_in = open(w->szInRedir, O_RDONLY);
+			dup2(fd_in, fileno(stdin)); // redirect to stdout
+			close(fd_in); // Close unused file descriptors
+	}
+	// Ausgaberedirection
+	if(w->szOutRedir != NULL)
+	{
+		LOG("OUTPUT Redirection wird durchgefuehrt");
+		fd_out = open(w->szOutRedir, O_RDWR|O_CREAT,S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+		dup2(fd_out, fileno(stdout)); // redirect to stdout
+		close(fd_out); // Close unused file descriptors
+	}
 }
 
+/**
+ * Arbeitet alle Prozesse ab
+ */
 void process_process(int pidx)
 {
+	// Aktueller und Vorgaengerprozess
 	wswd_proz *w, *w_prev;
 	int i;
+	// Alle Pipe werden "geoeffnet"
 	for (i = 0; i < processes_used-1; i++)
 	{
 		w = processes[i];
@@ -372,169 +384,105 @@ void process_process(int pidx)
 	{
 		LOG("Process %d", i);
 		int pid;
+		// Aktueller Prozess
 		w = processes[i];
 		LOG("Befehl: %s", w->argv[0]);
 		if (i > 0)
 		{
+			// Es gibt einen Vorgaenger
 			w_prev = processes[i-1];
 		}
 		else
 		{
+			// Kein Vorgaenger
 			w_prev = NULL;
 		}
 		if (w->nUsePipe && w_prev == NULL)
 		{
+			// Wenn eine Pipe vorhanden ist und dies der erste Prozess ist
 			LOG("Outgoing Pipe: Fork Process %d", i);
 			if ((w->nPID = fork())==0)
 			{
+				// Moegliche Redirections
+				redirect(w);
+				// Pipe fuer Ausgabestrom
 				dup2(w->pipe_verbindung[PWRITE],STDOUT_FILENO);
-				for (i = 0; i < processes_used-1; i++)
-				{
-					close(processes[i]->pipe_verbindung[PREAD]);
-					close(processes[i]->pipe_verbindung[PWRITE]);
-				}
-				/*close(w->pipe_verbindung[PREAD]);
-				close(w->pipe_verbindung[PWRITE]);*/
+				// Alle Pipes werden geschlossen
+				close_all_pipes();
+				// Prozess 1 wird gestartet
 				execvp(w->argv[0], w->argv);
-
-			}
-			else
-			{
-				LOG("fork-->%d", w->nPID);
 			}
 		}
 		else if (!w->nUsePipe && w_prev != NULL)
 		{
+			// Letzter Prozess
 			LOG("Incoming Pipe: Fork Process %d", i);
 			if ((w->nPID = fork())==0)
 			{
+				// Moegliche Redirections
+				redirect(w);
+				// Pipe auf Eingabestrom des Prozesses
 				dup2(w_prev->pipe_verbindung[PREAD],STDIN_FILENO);
-				/*close(w_prev->pipe_verbindung[PWRITE]);
-				close(w_prev->pipe_verbindung[PREAD]);*/
-				for (i = 0; i < processes_used-1; i++)
-				{
-					close(processes[i]->pipe_verbindung[PREAD]);
-					close(processes[i]->pipe_verbindung[PWRITE]);
-				}
+				// Schliessen aller anderen Pipes
+				close_all_pipes();
+				// Prozess wird angestartet
 				execvp(w->argv[0], w->argv);
-			}
-			else
-			{
-				LOG("fork-->%d", w->nPID);
 			}
 		}
 		else if (w->nUsePipe && w_prev != NULL)
 		{
+			// Ein Prozess in der Mitte sowohl ein- als auch ausgehende Pipes
 			LOG("Bidirectional Pipe: Fork Process %d", i);
 			if ((w->nPID = fork())==0)
 			{
+				// Moegliche Redirections
+				redirect(w);
+				// Eingagestrom
 				dup2(w_prev->pipe_verbindung[PREAD],STDIN_FILENO);
+				// Ausgabestrom
 				dup2(w->pipe_verbindung[PWRITE], STDOUT_FILENO);
-
-				/*close(w_prev->pipe_verbindung[PREAD]);
-				close(w_prev->pipe_verbindung[PWRITE]);
-				close(w->pipe_verbindung[PREAD]);
-				close(w->pipe_verbindung[PWRITE]);*/
-				for (i = 0; i < processes_used-1; i++)
-				{
-					close(processes[i]->pipe_verbindung[PREAD]);
-					close(processes[i]->pipe_verbindung[PWRITE]);
-				}
+				// Schliessen aller Pipes
+				close_all_pipes();
+				// Prozess wird angestartet
 				execvp(w->argv[0], w->argv);
-			}
-			else
-			{
-				LOG("fork-->%d", w->nPID);
 			}
 		}
 		else
 		{
+			// Nur ein Prozess keine Pipes
 			if ((w->nPID = fork())==0)
 			{
+				// Moegliche Redirections
+				redirect(w);
+				// Prozess wird gestartet
 				execvp(w->argv[0], w->argv);
 			}
 		}
 
 	}
+	// Alle Pipes im Vaterprozess werden geschlossen
+	close_all_pipes();
+	// Warten auf die ausstaendigen Kindprozess
 	for (i = 0; i < processes_used; i++)
 	{
 		LOG("waitpid(%d, 0, 0);", processes[i]->nPID);
 		waitpid(processes[i]->nPID,NULL,0);
-		if (i < processes_used -1)
-		{
-			close(processes[i]->pipe_verbindung[PREAD]);
-			close(processes[i]->pipe_verbindung[PWRITE]);
-		}
 	}
 
-/*
-	return;
-	if (pidx > 0)
-	{
-		wprev = processes[pidx-1];
-	}
-	if (pidx == processes_used-1)
-	{
-		if((w->nPID = fork())==0)
-		{
-			if (pidx != 0)
-			{
-				// dup2 verbindet den Filedeskriptor der Pipe mit der Filedeskriptor der Standardausgabe
-				dup2(w->pipe_verbindung[PREAD],STDIN_FILENO);
-				// der Leseausgang muss geschlossen werden, da dieser Prozess nichts liest
-				close(w->pipe_verbindung[PWRITE]);
-			}
-			int exec_retval;
-			exec_retval = execvp(w->argv[0], w->argv);
-			fflush(stdout);
 
-			// Alles gutgegangen ?
-			if(exec_retval != 0)
-			{
-				// Nein -> Fehler
-		//		LOG("Command %s returned with Errorcode %d\n", w->argv[0], exec_retval);
-			}
-			//printf("/////1");
-		}
-		waitpid(w->nPID, 0 ,0);
-	}
-	else
-	{
-		if (w->nUsePipe)
-		{
-			pipe(w->pipe_verbindung);
-		}
-		if((w->nPID = fork())==0)
-		{
-			if (pidx == 0)
-			{
-				// dup2 verbindet den Filedeskriptor der Pipe mit der Filedeskriptor der Standardausgabe
-				dup2(w->pipe_verbindung[PWRITE],STDOUT_FILENO);
-				// der Leseausgang muss geschlossen werden, da dieser Prozess nichts liest
-				close(w->pipe_verbindung[PREAD]);
-			}
+}
 
-			int exec_retval;
-			exec_retval = execvp(w->argv[0], w->argv);
-			// Alles gutgegangen ?
-			if(exec_retval != 0)
-			{
-				// Nein -> Fehler
-	//			LOG("Command %s returned with Errorcode %d\n", w->argv[0], exec_retval);
-			}
-		//	printf("/////2");
-
-		}
-		waitpid(w->nPID, 0 ,0);
-	}
-	close(w->pipe_verbindung[PREAD]);
-	close(w->pipe_verbindung[PWRITE]);
-	if (pidx < processes_used-1)
+/**
+ * Schliesst alle Pipes
+ */
+void close_all_pipes(void)
+{
+	int i;
+	for (i = 0; i < processes_used-1; i++)
 	{
-		process_process(pidx+1);
+		close(processes[i]->pipe_verbindung[PREAD]);
+		close(processes[i]->pipe_verbindung[PWRITE]);
 	}
-	fflush(stdout);
-*/
 }
 //-----------------------------------------------------------------------------
 void init_test_struct(void)
@@ -619,38 +567,38 @@ void init_struct(wswd_proz* p)
 void print_struct(wswd_proz* p)
 {
 	return;
-	printf("\n---INHALT von wswd_proz: [%p] ---\n", &p);
+	LOG("\n---INHALT von wswd_proz: [%p] ---\n", &p);
 
-	printf(" p->nUsePipe = %d\n",p->nUsePipe);
+	LOG(" p->nUsePipe = %d\n",p->nUsePipe);
 
 	if(p->szInRedir == NULL)
 	{
-		printf(" p->szInRedir = NULL\n");
+		LOG(" p->szInRedir = NULL\n");
 	}
 	else
 	{
-		printf(" p->szInRedir = %s\n",p->szInRedir);
+		LOG(" p->szInRedir = %s\n",p->szInRedir);
 	}
 
 	if(p->szOutRedir == NULL)
 	{
-		printf(" p->szOutRedir = NULL\n");
+		LOG(" p->szOutRedir = NULL\n");
 	}
 	else
 	{
-		printf(" p->szOutRedir = %s\n",p->szOutRedir);
+		LOG(" p->szOutRedir = %s\n",p->szOutRedir);
 	}
 
-	printf(" p->nArgsUsed = %d\n",p->nArgsUsed);
+	LOG(" p->nArgsUsed = %d\n",p->nArgsUsed);
 	if(p->nArgsUsed > 0)
 	{
 		int i = 0;
 		for(i = 0; i < p->nArgsUsed; i++)
 		{
-			printf(" p->argv[%d] = %s\n",i,p->argv[i]);
+			LOG(" p->argv[%d] = %s\n",i,p->argv[i]);
 		}
 	}
-	printf("--------------------\n");
+	LOG("--------------------\n");
 
 }
 //-----------------------------------------------------------------------------
@@ -661,10 +609,10 @@ void print_processes(void)
 {
 	return;
 	int i=0;
-	printf("\n###Anzahl Prozesse : %d###\n",processes_used);
+	LOG("\n###Anzahl Prozesse : %d###\n",processes_used);
 	for (i = 0; i < processes_used; i++)
 	{
-		printf("processes[%d]\n",i);
+		LOG("processes[%d]\n",i);
 		if (processes[i] != NULL)
 			{
 				print_struct(processes[i]);
