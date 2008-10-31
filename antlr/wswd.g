@@ -13,6 +13,7 @@ tokens
 	INPUT_REDIR     = '<';
 	EXIT    	= 'exit';
 	BACKGROUND	= '&'; 
+	CHANGEDIR	= 'cd';
 }
 
 @parser::includes
@@ -34,19 +35,28 @@ tokens
  
 cmd_line       
         :	process (process)* BLANK?
-        |	EXIT;
+        |	CHANGEDIR BLANK STRING
+        	{
+        		LOG("ANTLR: Verzeichniswechsel\n");
+        		chdir($STRING.text->chars);
+        	}
+        |	EXIT
+        	{
+        		LOG("ANTLR: Shell wird geschlossen\n");
+        		printf("bye\n");
+        		exit(0);
+        	};
 
 pipecreator 
 	: (BLANK? pipeto)
 	{
-		LOG("Prozess verwendet eine Pipe\n");
+		LOG("ANTLR: Prozess verwendet eine Pipe\n");
 		w_akt->nUsePipe = 1;
 	};
 		
 process     :   BLANK? exe redir* pipecreator?
 		{
-			LOG("Ende des Prozesses\n");
-			print_struct(w_akt);
+			LOG("ANTLR: Ende des Prozesses\n");
 			w_akt = NULL;
 		};
 
@@ -63,14 +73,14 @@ binary 	:	STRING
         		w_akt->argv[w_akt->nArgsUsed] = (char *) malloc(strlen((char*)$binary.text->chars));
         		strcpy(w_akt->argv[w_akt->nArgsUsed], (char*) $binary.text->chars);	
        		
-        		LOG("BINARY '\%s' gefunden ... wird an die Stelle 0 geschrieben\n",w_akt->argv[w_akt->nArgsUsed]);
+        		LOG("ANTLR: BINARY '\%s' gefunden ... wird an die Stelle 0 geschrieben\n",w_akt->argv[w_akt->nArgsUsed]);
         		w_akt->nArgsUsed ++;        		
 		};
 param	:	STRING
 		{
                    	w_akt->argv[w_akt->nArgsUsed] = (char *) malloc(strlen((char*)$param.text->chars));
         		strcpy(w_akt->argv[w_akt->nArgsUsed], (char*) $param.text->chars);	
-        		LOG("PARAMETER '\%s' gefunden ... wird an die Stelle \%d geschrieben\n",w_akt->argv[w_akt->nArgsUsed],w_akt->nArgsUsed); 
+        		LOG("ANTLR: PARAMETER '\%s' gefunden ... wird an die Stelle \%d geschrieben\n",w_akt->argv[w_akt->nArgsUsed],w_akt->nArgsUsed); 
         		w_akt->nArgsUsed ++;
 		};
 file	:	STRING;
@@ -85,7 +95,7 @@ inredir
         	{
 			w_akt->szInRedir = (char *) malloc(strlen((char*)$file.text->chars));
         		strcpy(w_akt->szInRedir, (char*) $file.text->chars);
-			LOG("EINGABESTROM wird umgeleitet in '\%s' \n",w_akt->szInRedir);;
+			LOG("ANTLR: EINGABESTROM wird umgeleitet in '\%s' \n",w_akt->szInRedir);;
         	};
 
 outredir
@@ -93,7 +103,7 @@ outredir
         	{
 			w_akt->szOutRedir = (char *) malloc(strlen((char*)$file.text->chars));
         		strcpy(w_akt->szOutRedir, (char*) $file.text->chars);
-			LOG("AUSGABESTROM wird umgeleitet in '\%s' \n",w_akt->szOutRedir);
+			LOG("ANTLR: AUSGABESTROM wird umgeleitet in '\%s' \n",w_akt->szOutRedir);
         	};
 
 

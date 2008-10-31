@@ -2,3 +2,11 @@ Original Testcase von Encephalon :
 
 program1 parameter1 < dateiname > dateiname | program2 parameter1 parameter3 | program3 > dateiname
 
+Versuchte Testcases
+
+ls
+ls -l
+ls -l > 1.txt
+sort < 1.txt
+ls | sort
+ls | sort | wc

@@ -10,7 +10,7 @@
   * Zentrale Logfunktion fuer interne Loggings.
   * Diese funktion kann in der Releaseversion unterdrueckt werden.
   */
-#define LOG(...) // printf(" >> LOG : " __VA_ARGS__ ); printf("\n"); fflush(stdout);
+#define LOG(...) fprintf(stderr, "%d ",getpid()); fprintf(stderr, " >> LOG : " __VA_ARGS__ ); fflush(stderr);
 
 
 //! Defines fuer die Parameterliste
@@ -48,10 +48,6 @@ typedef struct _wswd_proz
 
 }wswd_proz;
 
-void process_process(int);
-void close_all_pipes(void);
-void redirect(wswd_proz* w);
-
 wswd_proz* processes[MAX_PROCESSES];
 int processes_used;
 
@@ -75,5 +71,8 @@ void process_struct(void);
 void print_struct(wswd_proz* p);
 void init_struct(wswd_proz* p);
 void print_processes(void);
+void close_all_pipes(void);
+void redirect(wswd_proz* w);
+void do_exec(wswd_proz* w);
 
 #endif //WSWD_MAIN_H

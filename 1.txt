@@ -1,5 +1,0 @@
-1.txt
-antlr
-Debug
-src
-Tools
