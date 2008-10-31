@@ -1,3 +1,15 @@
+Compilieren mittels des build.sh Files
+======================================
+
+Um das Projekt ohne Eclipse zu kompilieren muss lediglich das build.sh File ausfuehren.
+Voraussetzung ist, dass die antlr3 library unter /usr/local/lib zu finden ist.
+
+
+
++++++++++++++++++++++++++++++++++++++++
+====          ECLIPSE CDT          ====
++++++++++++++++++++++++++++++++++++++++
+
 Compilieren des Projekts :
 ==========================
 
@@ -23,3 +35,4 @@ Um das Projekt aus Eclipse ausfuehren zu koennen muss unter "Run->Run Configurat
 die Variable LD_LIBRARY_PATH auf den Wert /usr/local/lib gesetzt werden.
 
 Ab diesem Zeitpunkt sollte die shell ausfuehrbar sein.
+
