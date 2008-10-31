@@ -16,129 +16,7 @@
 //-----------------------------------------------------------------------------
 int main(int argc, char * argv[])
 {
-	// pipe[0] zum Lesen und pipe[1] zum Schreiben
-	int pipe_verbindung_A[2];
-	int pipe_verbindung_B[2];
-	int pipe_verbindung_C[2];
-	int pipe_verbindung_D[2];
 
-	//Initialisierung durch die Funktion Pipe
-	//pipe(pipe_verbindung_A);
-
-	int cid1;
-	int cid2;
-	int cid3;
-	int cid4;
-	int cid5;
-
-	// Noch haben wir einen Prozess
-	// Wir setzen die erste Pipe auf
-	pipe(pipe_verbindung_A); // zwischen 1 und 2
-	pipe(pipe_verbindung_B); // zwischen 2 und 3
-	pipe(pipe_verbindung_C); // zwischen 3 und 4
-	pipe(pipe_verbindung_D); // zwischen 4 und 5
-
-	// Prozesse erzeugen
-	if((cid1 = fork())!=0)
-	{
-		if((cid2 = fork())!=0)
-		{
-			if((cid3 = fork())!=0)
-			{
-				if((cid4 = fork())!=0)
-				{
-					cid5 = fork();
-				}
-			}
-		}
-	}
-
-	if(cid1== 0)
-	{
-		// im Kindprozess
-		LOG("Das ist der erste Prozess");
-		// dup2 verbindet den Filedeskriptor der Pipe mit der Filedeskriptor der Standardausgabe
-		dup2(pipe_verbindung_A[PWRITE],STDOUT_FILENO);
-
-		// der Leseausgang muss geschlossen werden, da dieser Prozess nichts liest
-		close(pipe_verbindung_A[PREAD]);
-
-		 // Kommando ausführen, Standardausgabe des Kommandos ist mit der Pipe verbunden
-		execlp("ls","ls",0);
-	}
-	if(cid2 == 0)
-	{
-		// im Kindprozess
-		LOG("Das ist der zweite Prozess");
-		// Eingabe von A
-		dup2(pipe_verbindung_A[PREAD],STDIN_FILENO); // Alles aus der Pipe geht in die stdin
-		close(pipe_verbindung_A[PWRITE]);
-
-		// Ausgabe in den B
-		dup2(pipe_verbindung_B[PWRITE],STDOUT_FILENO);
-		close(pipe_verbindung_B[PREAD]);
-
-		execlp("sort","sort","-r",0);
-	}
-	if(cid3 == 0)
-	{
-		// im Kindprozess
-
-		LOG("Das ist der dritte Prozess");
-
-		// Keine Eingabe von A
-		close(pipe_verbindung_A[PWRITE]);
-
-		// EIngabe von B
-		dup2(pipe_verbindung_B[PREAD],STDIN_FILENO); // Alles aus der Pipe geht in die stdin
-		close(pipe_verbindung_B[PWRITE]);
-
-		// AUsgabe in C
-		dup2(pipe_verbindung_C[PWRITE],STDOUT_FILENO);
-		close(pipe_verbindung_C[PREAD]);
-
-		execlp("wc","wc",0);
-	}
-	if(cid4 == 0)
-	{
-		// im Kindprozess
-
-		// Keine Eingabe von A,B
-		close(pipe_verbindung_A[PWRITE]);
-		close(pipe_verbindung_B[PWRITE]);
-
-		LOG("Das ist der vierte Prozess");
-		// EIngabe von C
-		dup2(pipe_verbindung_C[PREAD],STDIN_FILENO); // Alles aus der Pipe geht in die stdin
-		close(pipe_verbindung_C[PWRITE]);
-
-		// AUsgabe in C
-		dup2(pipe_verbindung_D[PWRITE],STDOUT_FILENO);
-		close(pipe_verbindung_D[PREAD]);
-
-		execlp("wc","wc",0);
-	}
-	if(cid5 == 0)
-	{
-		// im Kindprozess
-
-		// Keine Eingabe von A,B,C
-		close(pipe_verbindung_A[PWRITE]);
-		close(pipe_verbindung_B[PWRITE]);
-		close(pipe_verbindung_C[PWRITE]);
-
-		LOG("Das ist der fuenfte Prozess");
-		// Eingabe von D
-		dup2(pipe_verbindung_D[PREAD],STDIN_FILENO);
-
-		// Keine weitere Ausgabeumleitung
-		close(pipe_verbindung_D[PWRITE]);
-
-		execlp("wc","wc","-c",0);
-	}
-
-	exit(0);
-	//----------------------------
 	char user_input[1024];
 
 	print_welcomeBanner();
@@ -146,8 +24,12 @@ int main(int argc, char * argv[])
 
 	while(fgets(user_input, sizeof(user_input), stdin))
 	{
+		fflush(stdout);
 		what_shell_we_do(user_input);
+		fflush(stdout);
 		print_prompt();
+		fflush(stdout);
+
 	}
 	return 0;
 }
@@ -216,7 +98,7 @@ void print_prompt(void)
 
 	gethostname(szHostName, sizeof(szHostName));
 	getcwd(szWorkingDir, sizeof(szWorkingDir));
-
+	fflush(stdout);
 	printf("\nwhat-shell-we-do@%s [%s]: ", szHostName, szWorkingDir);
 }
 //-----------------------------------------------------------------------------
@@ -258,6 +140,8 @@ void cleanup_struct(void)
 
 		processes[processes_used-1] = NULL;
 		processes_used --;
+		// ps->pipe_verbindung[0] = 0;
+		// ps->pipe_verbindung[1] = 0;
 	}
 }
 //-----------------------------------------------------------------------------
@@ -267,6 +151,9 @@ void cleanup_struct(void)
  */
 void process_struct(void)
 {
+	process_process(0);
+	fflush(stdout);
+	return;
 	//int pipe_connection[2];
 	//int pipes_initialized;
 
@@ -290,7 +177,112 @@ void process_struct(void)
 
 	int pidx;
 	wswd_proz* w;
+	for (pidx = 0; pidx < processes_used; pidx++)
+		{
+			// Wenn wir eine Pipe erzeugen wollen muessen wir das vor dem forken machen
+			if(w->nUsePipe == 1)
+			{
+				pipe(w->pipe_verbindung);
+			}
+		}
+	// Als erstes forken wir alle Prozesse
+	// Fuer jeden Prozess
+	for (pidx = 0; pidx < processes_used; pidx++)
+	{
+		// Prozessstrukturpointer umhaengen
+		w= processes[pidx];
 
+		// Ungueltig -> Fehlermeldung
+		if (w == NULL)
+		{
+			LOG("Ups, Der Prozess %d ist NULL, der das aber besser nicht waere !\n", pidx);
+			break;
+		}
+
+
+
+		// Wenn wir als pid 0 (= Child) zurueckbekommen dann brauchen wir nicht weiterzumachen
+		if((w->nPID = fork())==0)
+		{
+			break;
+		}
+	}
+
+	for (pidx = 0; pidx < processes_used; pidx++)
+	{
+		// Prozessstrukturpointer umhaengen
+		w= processes[pidx];
+
+		if(w->nPID == 0)
+		{
+			printf("PID = %d\n",getpid());
+			printf("pidx = %d\n", pidx);
+		}
+	}
+
+
+
+
+	// Testweies ausgeben aller PIDS
+	for (pidx = 0; pidx < processes_used; pidx++)
+	{
+		// Prozessstrukturpointer umhaengen
+		w= processes[pidx];
+
+		if(w->nPID == 0)
+		{
+			printf("PID = %d\n",getpid());
+			printf("pidx = %d\n", pidx);
+			// Wenn wir der erste sind und eine Pipe verwenden
+			if(pidx == 0 && w->nUsePipe == 1)
+			{	// im Kindprozess
+				LOG("Das ist der erste Prozess");
+				// dup2 verbindet den Filedeskriptor der Pipe mit der Filedeskriptor der Standardausgabe
+				dup2(w->pipe_verbindung[PWRITE],STDOUT_FILENO);
+
+				// der Leseausgang muss geschlossen werden, da dieser Prozess nichts liest
+				close(w->pipe_verbindung[PREAD]);
+			}
+			else if(pidx > 0 && w->nUsePipe == 0)
+			{
+				// Hier sind wie am ende aller Pipes, und sicherlich nicht im ersten Prozess
+				// Keine Eingabe von A,B,C
+				//close(w->pipe_verbindung[PWRITE]);
+				//close(w->w->pipe_verbindung->pipe_verbindung[PWRITE]);
+				//close(w->pipe_verbindung[PWRITE]);
+				int previdx;
+
+				// Alle vorherigen pipes schliessen
+				for(previdx = pidx-1; previdx > 0; previdx--)
+				{
+					LOG("Close pipe ... processes[%d]", previdx);
+					close(processes[previdx]->pipe_verbindung[PWRITE]);
+				}
+
+				// Eingabe von Pipe
+				dup2(w->pipe_verbindung[PREAD],STDIN_FILENO);
+
+				// Keine weitere Ausgabeumleitung
+				close(w->pipe_verbindung[PWRITE]);
+				LOG("Letztes Kind ...");
+			}
+
+			//Prozess starten
+			int exec_retval;
+			exec_retval = execvp(w->argv[0], w->argv);
+			// Alles gutgegangen ?
+			if(exec_retval != 0)
+			{
+				// Nein -> Fehler
+				LOG("Command %s returned with Errorcode %d\n", w->argv[0], exec_retval);
+			}
+			if (pidx > 0)
+			{
+				waitpid(processes[pidx -1]->nPID, 0, 0);
+			}
+		}
+	}
+	return;
 	// Fuer jeden Prozess
 	for (pidx = 0; pidx < processes_used; pidx++)
 	{
@@ -330,37 +322,6 @@ void process_struct(void)
 				close(fd_out); // Close unused file descriptors
 			}
 
-			// Pipes einrichten
-			// pipe[0] zum Lesen und pipe[1] zum Schreiben
-			int pipe_verbindung[2];
-
-			// Sollen wir selbst eine pipe erzeugen ?
-			if(w->nUsePipe == 1)
-			{
-				//Initialisierung durch die Funktion Pipe
-				pipe(pipe_verbindung);
-				LOG("Pipe wurde initialisiert");
-
-				// dup2 verbindet den Filedeskriptor der Pipe mit der Filedeskriptor der Standardausgabe
-				dup2(pipe_verbindung[1],1);
-
-				// der Leseausgang muss geschlossen werden, da dieser Prozess nichts liest
-				close(pipe_verbindung[0]);
-			}
-
-			// gibt es einen Vorgaengeprozess
-			if(pidx > 0)
-			{
-				// Ja es vor uns gibt es noch eine Prozessstruktur
-				// Hat der fuer uns eine Pipe erzeugt ?
-				if(processes[pidx-1]->nUsePipe = 1)
-				{
-					// Ja hat er, also lesen wir von genau dieser Pipe
-					dup2(pipe_verbindung[0],0);
-					close(pipe_verbindung[1]);
-				}
-
-			}
 
 			//Prozess starten
 			int exec_retval;
@@ -381,10 +342,204 @@ void process_struct(void)
 	}
 }
 
+void run_pipe(char **path, int read_fd, int write_fd){
+
+	int pid = fork();
+
+    if (pid){		//parent
+		if (read_fd)	close(read_fd);
+        if (write_fd)	close(write_fd);
+        return;
+    }
+
+    if (read_fd)		dup2(read_fd , 0);
+    if (write_fd)		dup2(write_fd, 1);
+
+    execvp(*path, path);
+}
+
+void process_process(int pidx)
+{
+	wswd_proz *w, *w_prev;
+	int i;
+	for (i = 0; i < processes_used-1; i++)
+	{
+		w = processes[i];
+		LOG("Create pipe for %d", i);
+		pipe(w->pipe_verbindung);
+	}
+	for (i = 0; i < processes_used; i++)
+	{
+		LOG("Process %d", i);
+		int pid;
+		w = processes[i];
+		LOG("Befehl: %s", w->argv[0]);
+		if (i > 0)
+		{
+			w_prev = processes[i-1];
+		}
+		else
+		{
+			w_prev = NULL;
+		}
+		if (w->nUsePipe && w_prev == NULL)
+		{
+			LOG("Outgoing Pipe: Fork Process %d", i);
+			if ((w->nPID = fork())==0)
+			{
+				dup2(w->pipe_verbindung[PWRITE],STDOUT_FILENO);
+				for (i = 0; i < processes_used-1; i++)
+				{
+					close(processes[i]->pipe_verbindung[PREAD]);
+					close(processes[i]->pipe_verbindung[PWRITE]);
+				}
+				/*close(w->pipe_verbindung[PREAD]);
+				close(w->pipe_verbindung[PWRITE]);*/
+				execvp(w->argv[0], w->argv);
+
+			}
+			else
+			{
+				LOG("fork-->%d", w->nPID);
+			}
+		}
+		else if (!w->nUsePipe && w_prev != NULL)
+		{
+			LOG("Incoming Pipe: Fork Process %d", i);
+			if ((w->nPID = fork())==0)
+			{
+				dup2(w_prev->pipe_verbindung[PREAD],STDIN_FILENO);
+				/*close(w_prev->pipe_verbindung[PWRITE]);
+				close(w_prev->pipe_verbindung[PREAD]);*/
+				for (i = 0; i < processes_used-1; i++)
+				{
+					close(processes[i]->pipe_verbindung[PREAD]);
+					close(processes[i]->pipe_verbindung[PWRITE]);
+				}
+				execvp(w->argv[0], w->argv);
+			}
+			else
+			{
+				LOG("fork-->%d", w->nPID);
+			}
+		}
+		else if (w->nUsePipe && w_prev != NULL)
+		{
+			LOG("Bidirectional Pipe: Fork Process %d", i);
+			if ((w->nPID = fork())==0)
+			{
+				dup2(w_prev->pipe_verbindung[PREAD],STDIN_FILENO);
+				dup2(w->pipe_verbindung[PWRITE], STDOUT_FILENO);
+
+				/*close(w_prev->pipe_verbindung[PREAD]);
+				close(w_prev->pipe_verbindung[PWRITE]);
+				close(w->pipe_verbindung[PREAD]);
+				close(w->pipe_verbindung[PWRITE]);*/
+				for (i = 0; i < processes_used-1; i++)
+				{
+					close(processes[i]->pipe_verbindung[PREAD]);
+					close(processes[i]->pipe_verbindung[PWRITE]);
+				}
+				execvp(w->argv[0], w->argv);
+			}
+			else
+			{
+				LOG("fork-->%d", w->nPID);
+			}
+		}
+		else
+		{
+			if ((w->nPID = fork())==0)
+			{
+				execvp(w->argv[0], w->argv);
+			}
+		}
+
+	}
+	for (i = 0; i < processes_used; i++)
+	{
+		LOG("waitpid(%d, 0, 0);", processes[i]->nPID);
+		waitpid(processes[i]->nPID,NULL,0);
+		if (i < processes_used -1)
+		{
+			close(processes[i]->pipe_verbindung[PREAD]);
+			close(processes[i]->pipe_verbindung[PWRITE]);
+		}
+	}
+
+/*
+	return;
+	if (pidx > 0)
+	{
+		wprev = processes[pidx-1];
+	}
+	if (pidx == processes_used-1)
+	{
+		if((w->nPID = fork())==0)
+		{
+			if (pidx != 0)
+			{
+				// dup2 verbindet den Filedeskriptor der Pipe mit der Filedeskriptor der Standardausgabe
+				dup2(w->pipe_verbindung[PREAD],STDIN_FILENO);
+				// der Leseausgang muss geschlossen werden, da dieser Prozess nichts liest
+				close(w->pipe_verbindung[PWRITE]);
+			}
+			int exec_retval;
+			exec_retval = execvp(w->argv[0], w->argv);
+			fflush(stdout);
+
+			// Alles gutgegangen ?
+			if(exec_retval != 0)
+			{
+				// Nein -> Fehler
+		//		LOG("Command %s returned with Errorcode %d\n", w->argv[0], exec_retval);
+			}
+			//printf("/////1");
+		}
+		waitpid(w->nPID, 0 ,0);
+	}
+	else
+	{
+		if (w->nUsePipe)
+		{
+			pipe(w->pipe_verbindung);
+		}
+		if((w->nPID = fork())==0)
+		{
+			if (pidx == 0)
+			{
+				// dup2 verbindet den Filedeskriptor der Pipe mit der Filedeskriptor der Standardausgabe
+				dup2(w->pipe_verbindung[PWRITE],STDOUT_FILENO);
+				// der Leseausgang muss geschlossen werden, da dieser Prozess nichts liest
+				close(w->pipe_verbindung[PREAD]);
+			}
+
+			int exec_retval;
+			exec_retval = execvp(w->argv[0], w->argv);
+			// Alles gutgegangen ?
+			if(exec_retval != 0)
+			{
+				// Nein -> Fehler
+	//			LOG("Command %s returned with Errorcode %d\n", w->argv[0], exec_retval);
+			}
+		//	printf("/////2");
+
+		}
+		waitpid(w->nPID, 0 ,0);
+	}
+	close(w->pipe_verbindung[PREAD]);
+	close(w->pipe_verbindung[PWRITE]);
+	if (pidx < processes_used-1)
+	{
+		process_process(pidx+1);
+	}
+	fflush(stdout);
+*/
+}
 //-----------------------------------------------------------------------------
 void init_test_struct(void)
 {
-
+		return;
         processes[0] = malloc(sizeof(wswd_proz));
         processes[1] = malloc(sizeof(wswd_proz));
 
@@ -447,6 +602,9 @@ void init_struct(wswd_proz* p)
 	p->nUsePipe = 0;
 	p->szInRedir = NULL;
 	p->szOutRedir = NULL;
+	p->nPID = -1;
+	p->pipe_verbindung[0] = 0;
+	p->pipe_verbindung[1] = 0;
 
 	int i = 0;
 	for(i = 0; i < MAX_ARGS; i++)
@@ -460,6 +618,7 @@ void init_struct(wswd_proz* p)
  */
 void print_struct(wswd_proz* p)
 {
+	return;
 	printf("\n---INHALT von wswd_proz: [%p] ---\n", &p);
 
 	printf(" p->nUsePipe = %d\n",p->nUsePipe);
@@ -500,6 +659,7 @@ void print_struct(wswd_proz* p)
  */
 void print_processes(void)
 {
+	return;
 	int i=0;
 	printf("\n###Anzahl Prozesse : %d###\n",processes_used);
 	for (i = 0; i < processes_used; i++)
