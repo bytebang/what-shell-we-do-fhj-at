@@ -11,7 +11,7 @@ echo "... sucessfully finished building c files from grammar"
 echo ""
 
 echo "------------------------- compiling everything -------------------------------"
-gcc -Wall -I/usr/include -I/usr/local/include -I"./src" -I"./antlr/output" -g3  -c ./src/wswd_main.c ./antlr/output/wswdLexer.c ./antlr/output/wswdParser.c 
+gcc -I/usr/include -I/usr/local/include -I"/home/jars/workspace/what-shell-we-do/src" -I"/home/jars/workspace/what-shell-we-do/antlr/output" -O0 -g3 -Wall -c ./src/wswd_main.c ./antlr/output/wswdLexer.c ./antlr/output/wswdParser.c 
 if [ "$?" -ne "0" ]; then
   echo "Sorry, there is a problem during compiling. Make sure that you have gcc installed, and that tere are no errors in the code."
   exit 1
@@ -21,7 +21,7 @@ echo "... sucessfully finished compiling"
 echo ""
 
 echo "-------------------------- Linking everything together -----------------------"
-gcc -L/usr/local/lib -lantlr3c -o"what-shell-we-do" *.o
+gcc  -o"what-shell-we-do" *.o -static -L/usr/local/lib -lantlr3c
 if [ "$?" -ne "0" ]; then
   echo "Sorry, there is a problem during linking. Make sure that you have the antlr3c library installed in /usr/local/lib"
   exit 1
