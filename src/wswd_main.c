@@ -108,8 +108,6 @@ void print_prompt(void)
  */
 void cleanup_struct(void)
 {
-	int i;
-
     while(processes_used > 0)
 	{
     	wswd_proz *ps = processes[processes_used-1];
@@ -169,7 +167,7 @@ void process_struct(void)
 	for (i = 0; i < processes_used; i++)
 	{
 		LOG("Process %d\n", i);
-		int pid;
+
 		// Aktueller Prozess
 		w = processes[i];
 		LOG("Befehl: %s\n", w->argv[0]);

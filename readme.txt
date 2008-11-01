@@ -5,6 +5,17 @@ Um das Projekt ohne Eclipse zu kompilieren muss lediglich das build.sh File ausf
 Voraussetzung ist, dass die antlr3 library unter /usr/local/lib zu finden ist.
 
 
+Features :
+==========
+
+- Input redirection
+- Output redirection
+- Beliebig viele Pipes 
+- Anzeige des aktuellen Verzeichnisses
+- Wechseln des aktuellen verzeichnisses 'cd'
+- Anzeige des aktuellen Benutzers
+- Benden der Shell mit 'exit'
+
 
 +++++++++++++++++++++++++++++++++++++++
 ====          ECLIPSE CDT          ====
@@ -13,7 +24,7 @@ Voraussetzung ist, dass die antlr3 library unter /usr/local/lib zu finden ist.
 Compilieren des Projekts :
 ==========================
 
-Um das Projekt kompilieren zu koennen muss ANTLR V3.1 am Szstem installiert sein.
+Um das Projekt kompilieren zu koennen muss ANTLR V3.1 am System installiert sein.
 Das ist unter http://www.antlr.org/ erhaeltlich.
 
 Danach muss aus dem Grammatikfile (./antlr/wswd.g) der C Code erzeugt werden.
@@ -23,16 +34,11 @@ Grammatikfile laedt und auf "Generate->Generate Code" klickt.
 Die erzeugten C Files werden unter ./antlr/output abgelegt.
 
 Jetzt kann das Projekt in Eclipse CDT kompiliert werden.
+Die verwendete antlr3c library wird direkt in das binary gelinkt. 
 
-Ausfuehren der shell:
-=====================
+Die Shell kann danach ausgefuehrt werden.
 
-Um das binary ausfuehren zu koennen muss der Pfad zur antlr library (LD_LIBRARY_PATH) 
-gesetzt werden. Diese ist (bei einer ANTLR Standardinstallation) unter /usr/local/lib
-zu finden.
-
-Um das Projekt aus Eclipse ausfuehren zu koennen muss unter "Run->Run Configurations->Environment" 
-die Variable LD_LIBRARY_PATH auf den Wert /usr/local/lib gesetzt werden.
-
-Ab diesem Zeitpunkt sollte die shell ausfuehrbar sein.
+Anmerkung Shared library : Moechte man antlr3c als shared library verwenden, 
+muss man die Linkeropition -static entfernen und die Umgebungsvariable 
+LD_LIBRARY_PATH auf den entsprechenden Pfad (/usr/local/lib) setzen.
 

@@ -38,7 +38,7 @@ cmd_line
         |	CHANGEDIR BLANK STRING
         	{
         		LOG("ANTLR: Verzeichniswechsel\n");
-        		chdir($STRING.text->chars);
+        		chdir((char*)$STRING.text->chars);
         	}
         |	EXIT
         	{
