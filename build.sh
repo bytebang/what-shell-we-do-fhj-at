@@ -1,7 +1,7 @@
 #!/bin/sh
 
 echo "----------------- building antlr c files from grammar ------------------------"
-java -cp $CLASSPATH:./Tools/antlr-3.1.1.jar org.antlr.Tool  -fo ./antlr/output ./antlr/wswd.g 
+java -cp $CLASSPATH:./Tools/antlr-3.2.jar org.antlr.Tool  -fo ./antlr/output ./antlr/wswd.g 
 if [ "$?" -ne "0" ]; then
   echo "Sorry, there is a problem with antlr. Make sure that you have java installed"
   exit 1
@@ -11,7 +11,7 @@ echo "... sucessfully finished building c files from grammar"
 echo ""
 
 echo "------------------------- compiling everything -------------------------------"
-gcc -I/usr/include -I/usr/local/include -I"/home/jars/workspace/what-shell-we-do/src" -I"/home/jars/workspace/what-shell-we-do/antlr/output" -O0 -g3 -Wall -c ./src/wswd_main.c ./antlr/output/wswdLexer.c ./antlr/output/wswdParser.c 
+gcc -I/usr/include -I/usr/local/include -I"./src" -I"./antlr/output" -O0 -g3 -Wall -c ./src/wswd_main.c ./antlr/output/wswdLexer.c ./antlr/output/wswdParser.c 
 if [ "$?" -ne "0" ]; then
   echo "Sorry, there is a problem during compiling. Make sure that you have gcc installed, and that tere are no errors in the code."
   exit 1
@@ -35,6 +35,18 @@ echo "---------------------------- Removing build objects ----------------------
 rm ./*.o
 echo ""
 echo "... sucessfully deleted all objects"
+echo ""
+echo ""
+
+echo "---------------------------- Creating documentation --------------------------"
+rm -rf ./doc/html/
+doxygen  ./doc/Doxyfile > /dev/null
+if [ "$?" -ne "0" ]; then
+  echo "Sorry, there is a problem with the documentation. Make sure that you have doxygen and graphviz installed."
+  exit 1
+fi
+echo ""
+echo "... sucessfully created the documentation"
 echo ""
 echo ""
 

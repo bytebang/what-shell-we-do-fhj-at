@@ -10,7 +10,7 @@
   * Zentrale Logfunktion fuer interne Loggings.
   * Diese funktion kann in der Releaseversion unterdrueckt werden.
   */
-#define LOG(...) // fprintf(stderr, "%d ",getpid()); fprintf(stderr, " >> LOG : " __VA_ARGS__ ); fflush(stderr);
+#define LOG(...)  fprintf(stderr, "%d ",getpid()); fprintf(stderr, " >> LOG : " __VA_ARGS__ ); fflush(stderr);
 
 
 //! Defines fuer die Parameterliste

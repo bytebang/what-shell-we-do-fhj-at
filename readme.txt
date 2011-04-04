@@ -25,7 +25,7 @@ Compilieren des Projekts :
 ==========================
 
 Um das Projekt kompilieren zu koennen muss ANTLR V3.1 am System installiert sein.
-Das ist unter http://www.antlr.org/ erhaeltlich.
+Das ist unter http://www.antlr.org/download/ erhaeltlich.
 
 Danach muss aus dem Grammatikfile (./antlr/wswd.g) der C Code erzeugt werden.
 Am besten geht das mit antlrworks (./tools/antlrworks/antlrworks-1.2.1.jar) indem man das

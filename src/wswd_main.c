@@ -324,7 +324,7 @@ void init_struct(wswd_proz* p)
 void print_struct(wswd_proz* p)
 {
 
-	LOG(" ---INHALT von wswd_proz: [%p] aus der Sich von Prozess %d ---\n", &p, getpid());
+	LOG(" ---INHALT von wswd_proz: [%p] aus der Sicht von Prozess %d ---\n", &p, getpid());
 	LOG("|   p->nUsePipe = %d\n",p->nUsePipe);
 
 	LOG("|   p->pipe_verbindung[0] = %d\n",p->pipe_verbindung[0]);
