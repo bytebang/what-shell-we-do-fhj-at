@@ -5,8 +5,8 @@ Um das Projekt ohne Eclipse zu kompilieren muss lediglich das build.sh File ausf
 Voraussetzung ist, dass die antlr3 library unter /usr/local/lib zu finden ist.
 
 
-Features :
-==========
+Features
+========
 
 - Input redirection
 - Output redirection
@@ -17,12 +17,8 @@ Features :
 - Benden der Shell mit 'exit'
 
 
-+++++++++++++++++++++++++++++++++++++++
-====          ECLIPSE CDT          ====
-+++++++++++++++++++++++++++++++++++++++
-
-Compilieren des Projekts :
-==========================
+Compilieren des Projekts
+========================
 
 Um das Projekt kompilieren zu koennen muss ANTLR V3.1 am System installiert sein.
 Das ist unter http://www.antlr.org/download/ erhaeltlich.
